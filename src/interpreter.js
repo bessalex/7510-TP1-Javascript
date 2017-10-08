@@ -69,7 +69,6 @@ var DBList = function(){
 
 };
 
-
 /* Definición de los Facts */
 var Fact = function(name){
     this.name = name;
@@ -81,7 +80,7 @@ Fact.prototype.verify= function(params){
     var result = [];
 
     function getResult(total, actual){
-        return (total == actual == true);
+        return ((total == true) && (actual == true));
     }
 
     for (var key in params) {
@@ -154,30 +153,179 @@ Rule.prototype.print = function(){
 
 
 
+/*   Parseo de Elementos */
+var parseNameAndParams= function (element){
+    return element.match(/([^\(\., \)]+)/g);
+};
+
+
+var parseFact= function(element){
+    var parts = parseNameAndParams(element);
+    // console.log("Fact: " + parts[0]);
+
+    var newFact = new Fact(parts[0]);
+
+    for(var i=1; i<parts.length; i++){
+        newFact.addValue(parts[i]);
+        // console.log("\t partes: " + parts[i]);
+    }
+    return newFact;
+};
+
+
+
+var parseRule= function(element){
+
+    // console.log("Rule: ");
+    var parts = element.split(":-");
+    // console.log("\t parts: " + parts);
+
+    var ruleParts = parseNameAndParams(parts[0]);
+    // console.log("\t ruleParts: " + ruleParts);
+
+    var params = ruleParts.slice(1,ruleParts.length);
+    // console.log("\t Params: " + params);
+
+    var newRule = new Rule(ruleParts[0],params);
+    // console.log("\t newRule: " + newRule.name + " " + newRule.params);
+
+
+    var factContent = parts[1].split("),");
+    // console.log("\t factContent: " + factContent);
+
+    for (var key in factContent){
+        var fact = parseNameAndParams(factContent[key]);
+        var name = fact[0];
+        // console.log("\t\t fact content Name: " + name);
+        var values = [];
+
+        for (var i=1; i<fact.length; i++){
+            values.push(fact[i]);
+        }
+        newRule.addValues(name,values);
+        // console.log("\t\t fact content params: " + values);
+
+    }
+    return newRule;
+};
+
+
+
+
+var is_rule = function (element){
+    if (element.indexOf(":-") > 0 && (element.indexOf(".") == element.length -1 )){
+        return (element.match(/[^.]+(:-){1}[^.]+\([^\(,.\)]+[^\(.\)]*\)./));
+    }
+    return false
+};
+
+var is_fact = function (element){
+    if (element.indexOf("(")>0 && element.indexOf(")")>0 && (element.indexOf(".") == element.length -1 )){
+        return element.match(/\([^\(,.\)]+[^\(.\)]*\)/);
+    };
+    return false;
+};
+
+
+/* Carga de la Database según patron chain of responsability */
+var chargeDB = function() {
+    var chargeRule = new ChargeElement(is_rule,parseRule,db.rules);
+    var chargeFact = new ChargeElement(is_fact,parseFact,db.facts);
+
+    chargeRule.setNextStack(chargeFact);
+
+    this.chargeBD = chargeRule;
+};
+
+chargeDB.prototype.withdraw = function(element) {
+    element.result = [];
+    this.chargeBD.withdraw(element);
+    return element.result;
+};
+
+
+var ChargeElement = function(isThisType, parseType,dest) {
+    this.next = null;
+    this.withdraw = function(element) {
+        if (isThisType(element)){
+            var newElement = parseType(element);
+            // console.log("El elemento: " + element + " fue cargado así: ");
+            newElement.print();
+            dest.add(newElement);
+            element.result= newElement;
+        }else{
+            if (this.next!=null){
+                this.next.withdraw(element);
+            }
+        }
+    };
+
+    this.setNextStack = function(stack) {
+        this.next = stack;
+    };
+};
+
+
+/****  query basado en el patron Chain of responsability ****/
+var Query = function() {
+    var queryRule = new makeQuery(db.rules);
+    var queryFact = new makeQuery(db.facts);
+
+    queryRule.setNextStack(queryFact);
+
+    this.Query = queryRule;
+};
+
+Query.prototype.withdraw = function(element) {
+    element.result = false;
+    this.Query.withdraw(element);
+    return element.result;
+};
+
+var makeQuery = function(dbList) {
+    this.next = null;
+    this.withdraw = function(element) {
+
+        var dbListresult = dbList.get(element.name);
+        for (var key in dbListresult) {
+            if (dbListresult[key].verify(element.values)) element.result = true
+        }
+
+        if (~element.result){
+            if (this.next!=null){
+                this.next.withdraw(element);
+            }
+        }
+    };
+
+    this.setNextStack = function(stack) {
+        this.next = stack;
+    };
+};
+
+
 var Interpreter = function () {
 
     db = new Database();
 
     this.parseDB = function (data) {
+        var parser = new chargeDB();
+        var request = "";
+        for (key in data){
+            request = data[key];
+            var response = parser.withdraw(data[key]);
+        }
 
     }
 
     this.checkQuery = function (params) {
+        var query = new Query();
+        var request = "";
+        var parserQuery = parseFact(params);
+        return query.withdraw(parserQuery);
+    }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
