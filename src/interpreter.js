@@ -12,6 +12,10 @@ function Database() {
     instance.facts = new DBList();
     instance.rules = new DBList();
 
+    instance.isEmpty = function(){
+       return (instance.facts.isEmpty() && instance.rules.isEmpty());
+    };
+
     return instance;
 };
 
@@ -62,6 +66,9 @@ var DBList = function(){
     this.get = function(name){
         return _list.filter(filterByName.bind(null,name));
     };
+    this.isEmpty = function(){
+        return (_list.length == 0);
+    };
 
     this.print = function(){
         console.log(_list);
@@ -80,7 +87,7 @@ Fact.prototype.verify= function(params){
     var result = [];
 
     function getResult(total, actual){
-        return ((total == true) && (actual == true));
+        return (total && actual);
     }
 
     for (var key in params) {
@@ -111,7 +118,7 @@ Rule.prototype.verify = function (posParams){
     }
 
     function getResult(total, actual){
-        return (total == actual == true);
+        return (total && actual);
     }
 
     function verifyFacts(listOfFacts,params){
@@ -238,9 +245,9 @@ var chargeDB = function() {
 };
 
 chargeDB.prototype.withdraw = function(element) {
-    element.result = [];
-    this.chargeBD.withdraw(element);
-    return element.result;
+    var result = false;
+    result = this.chargeBD.withdraw(element);
+    return result;
 };
 
 
@@ -252,10 +259,10 @@ var ChargeElement = function(isThisType, parseType,dest) {
             // console.log("El elemento: " + element + " fue cargado así: ");
             newElement.print();
             dest.add(newElement);
-            element.result= newElement;
+            return true;
         }else{
             if (this.next!=null){
-                this.next.withdraw(element);
+                return this.next.withdraw(element);
             }
         }
     };
@@ -311,14 +318,20 @@ var Interpreter = function () {
     this.parseDB = function (data) {
         var parser = new chargeDB();
         var request = "";
+        var result = false;
         for (key in data){
             request = data[key];
-            var response = parser.withdraw(data[key]);
+            result = parser.withdraw(data[key]);
+            if (!result){
+                console.log("Error en la carga de la base de datos ");
+                return false;
+            }
         }
-
+        return true;
     }
 
     this.checkQuery = function (params) {
+        if (db.isEmpty()) return null;
         var query = new Query();
         var request = "";
         var parserQuery = parseFact(params);
@@ -326,6 +339,7 @@ var Interpreter = function () {
     }
 
 }
+
 
 
 
