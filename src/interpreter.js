@@ -34,12 +34,6 @@ DBElement.prototype = {
     },
     getValues: function(){
         return this.values;
-    },
-    print: function(){
-        console.log("Name: " + this.name);
-        this.values.forEach(function(element) {
-                console.log("\t Element: " + element );
-        });
     }
 
 };
@@ -69,10 +63,6 @@ var DBList = function(){
     this.isEmpty = function(){
         return (_list.length == 0);
     };
-
-    this.print = function(){
-        console.log(_list);
-    }
 
 };
 
@@ -148,15 +138,6 @@ Rule.prototype.addValues = function(fname, fparams){
     }
     this.values.push(dbElement);
 };
-Rule.prototype.print = function(){
-        console.log("Name: " + this.name);
-        this.params.forEach(function(element) {
-            console.log("\t Params: " + element);
-        });
-        this.values.forEach(function(element) {
-            element.print();
-        });
-    };
 
 
 
@@ -168,13 +149,11 @@ var parseNameAndParams= function (element){
 
 var parseFact= function(element){
     var parts = parseNameAndParams(element);
-    // console.log("Fact: " + parts[0]);
 
     var newFact = new Fact(parts[0]);
 
     for(var i=1; i<parts.length; i++){
         newFact.addValue(parts[i]);
-        // console.log("\t partes: " + parts[i]);
     }
     return newFact;
 };
@@ -183,35 +162,26 @@ var parseFact= function(element){
 
 var parseRule= function(element){
 
-    // console.log("Rule: ");
     var parts = element.split(":-");
-    // console.log("\t parts: " + parts);
 
     var ruleParts = parseNameAndParams(parts[0]);
-    // console.log("\t ruleParts: " + ruleParts);
 
     var params = ruleParts.slice(1,ruleParts.length);
-    // console.log("\t Params: " + params);
 
     var newRule = new Rule(ruleParts[0],params);
-    // console.log("\t newRule: " + newRule.name + " " + newRule.params);
 
 
     var factContent = parts[1].split("),");
-    // console.log("\t factContent: " + factContent);
 
     for (var key in factContent){
         var fact = parseNameAndParams(factContent[key]);
         var name = fact[0];
-        // console.log("\t\t fact content Name: " + name);
         var values = [];
 
         for (var i=1; i<fact.length; i++){
             values.push(fact[i]);
         }
         newRule.addValues(name,values);
-        // console.log("\t\t fact content params: " + values);
-
     }
     return newRule;
 };
@@ -256,8 +226,6 @@ var ChargeElement = function(isThisType, parseType,dest) {
     this.withdraw = function(element) {
         if (isThisType(element)){
             var newElement = parseType(element);
-            // console.log("El elemento: " + element + " fue cargado así: ");
-            newElement.print();
             dest.add(newElement);
             return true;
         }else{
