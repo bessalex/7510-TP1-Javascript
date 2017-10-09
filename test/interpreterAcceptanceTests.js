@@ -1,4 +1,4 @@
-var expect = require("chai").expect;
+var expect = require("chai");
 var should = require('should');
 var assert = require('assert');
 

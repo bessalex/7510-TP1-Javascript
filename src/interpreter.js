@@ -63,7 +63,6 @@ var DBList = function(){
     this.isEmpty = function(){
         return (_list.length == 0);
     };
-
 };
 
 /* Definición de los Facts */
@@ -140,7 +139,6 @@ Rule.prototype.addValues = function(fname, fparams){
 };
 
 
-
 /*   Parseo de Elementos */
 var parseNameAndParams= function (element){
     return element.match(/([^\(\., \)]+)/g);
@@ -149,11 +147,13 @@ var parseNameAndParams= function (element){
 
 var parseFact= function(element){
     var parts = parseNameAndParams(element);
+    // console.log("Fact: " + parts[0]);
 
     var newFact = new Fact(parts[0]);
 
     for(var i=1; i<parts.length; i++){
         newFact.addValue(parts[i]);
+        // console.log("\t partes: " + parts[i]);
     }
     return newFact;
 };
@@ -162,26 +162,35 @@ var parseFact= function(element){
 
 var parseRule= function(element){
 
+    // console.log("Rule: ");
     var parts = element.split(":-");
+    // console.log("\t parts: " + parts);
 
     var ruleParts = parseNameAndParams(parts[0]);
+    // console.log("\t ruleParts: " + ruleParts);
 
     var params = ruleParts.slice(1,ruleParts.length);
+    // console.log("\t Params: " + params);
 
     var newRule = new Rule(ruleParts[0],params);
+    // console.log("\t newRule: " + newRule.name + " " + newRule.params);
 
 
     var factContent = parts[1].split("),");
+    // console.log("\t factContent: " + factContent);
 
     for (var key in factContent){
         var fact = parseNameAndParams(factContent[key]);
         var name = fact[0];
+        // console.log("\t\t fact content Name: " + name);
         var values = [];
 
         for (var i=1; i<fact.length; i++){
             values.push(fact[i]);
         }
         newRule.addValues(name,values);
+        // console.log("\t\t fact content params: " + values);
+
     }
     return newRule;
 };
@@ -197,7 +206,7 @@ var is_rule = function (element){
 };
 
 var is_fact = function (element){
-    if (element.indexOf("(")>0 && element.indexOf(")")>0 && (element.indexOf(".") == element.length -1 )){
+    if (element.indexOf("(")>0 && element.indexOf(")")>0 ){
         return element.match(/\([^\(,.\)]+[^\(.\)]*\)/);
     };
     return false;
@@ -279,9 +288,16 @@ var makeQuery = function(dbList) {
 };
 
 
+
+
+
 var Interpreter = function () {
 
     db = new Database();
+    
+    this.QueryError = function(){
+    	throw new Error ('Query Error');
+    }
 
     this.parseDB = function (data) {
         var parser = new chargeDB();
@@ -291,7 +307,7 @@ var Interpreter = function () {
             request = data[key];
             result = parser.withdraw(data[key]);
             if (!result){
-                console.log("Error en la carga de la base de datos ");
+                console.log("Error en la carga de elemento: " + data[key] );
                 return false;
             }
         }
@@ -300,6 +316,8 @@ var Interpreter = function () {
 
     this.checkQuery = function (params) {
         if (db.isEmpty()) return null;
+        if (!is_fact(params)) this.QueryError();
+
         var query = new Query();
         var request = "";
         var parserQuery = parseFact(params);
@@ -307,8 +325,6 @@ var Interpreter = function () {
     }
 
 }
-
-
 
 
 module.exports = Interpreter;
